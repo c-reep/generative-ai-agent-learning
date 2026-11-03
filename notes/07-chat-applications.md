@@ -70,3 +70,12 @@ history = request_messages + [
 - `clear` 后模型不再知道清空前的对话。
 - `exit` 和 `quit` 可以正常退出。
 - API 失败不会写入正式历史，也不会让程序直接崩溃。
+
+##  从天气问题理解 Function Calling
+- 在运行 Part 07 多轮聊天程序时，我询问模型：南京的天气怎么样？
+- 聊天程序无法获取实时天气，因为 LLM 只能根据输入和已有知识生成回答，不能直接访问天气 API。
+- 而Function Calling把流程扩展到：
+LLM 生成工具名称和参数
+→ Python 校验并执行工具
+→ 执行结果返回给 LLM
+→ LLM 生成最终回答
