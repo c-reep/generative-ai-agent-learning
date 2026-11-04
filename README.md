@@ -22,6 +22,7 @@ Embedding、向量数据库和 RAG 暂时不在本阶段范围内。
 | Part 07：聊天应用 | 已完成 | DeepSeek 多轮聊天、历史管理、清空与错误恢复 |
 | Part 11：Function Calling | 已完成 | 实现计算、保存笔记、查询天气和工具调用闭环 |
 | 最小 Agent 项目 | 已完成 | `genai-starter` 已模块化并通过自动测试 |
+|Agents SDK 入门项目| 已完成 |使用 OpenAI Agents SDK 驱动 DeepSeek，实现 Agent、Runner、Session 和自动工具调用|
 
 ## 仓库结构
 
@@ -37,7 +38,8 @@ generative-ai-agent-learning/
 ├── part06-deepseek/
 ├── part07-deepseek/
 ├── part11-deepseek/
-└── genai-starter/          # 模块化最小 Agent 项目
+├── genai-starter/                    # 手动实现工具调用闭环
+└── openai-agents-starter-deepseek/   # 使用 Agents SDK 驱动 DeepSeek
 ```
 
 ## 运行环境
