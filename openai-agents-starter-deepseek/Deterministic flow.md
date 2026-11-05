@@ -1,6 +1,6 @@
 # OpenAI Agents SDK + DeepSeek 入门项目
 
-这是把 Part 07/11 中“手写消息历史 + 手写工具调用循环”重做成 Agents SDK 版本的小项目。OpenAI Agents SDK 负责编排，DeepSeek `deepseek-flash` 负责模型推理。
+这是把 Part 07/11 中“手写消息历史 + 手写工具调用循环”重做成 Agents SDK 版本的小项目。OpenAI Agents SDK 负责编排，DeepSeek `deepseek-flash` 负责模型推理。当前版本在单 Agent 基础上增加了 Routing：分流助手会把计算请求和生活类请求交给不同的专业 Agent。
 
 ## 五个学习重点
 
@@ -22,11 +22,12 @@ SDK会生成模型需要的工具描述。因此不再需要手写整段 TOOLS J
 ## 项目结构
 
 ```text
-openai-agents-starter/
+openai-agents-starter-deepseek/
 ├── app.py                  # 终端循环，调用 Runner
-├── agent_setup.py          # Agent 的模型、指令和工具清单
+├── agent_setup.py          # 单 Agent、Routing Agent 和专业 Agent
 ├── tools.py                # 三个工具及其纯 Python 实现
 ├── config.py               # .env、模型和文件路径
+├── tests/                  # 工具和 Agent 结构的离线测试
 ├── .env.example
 ├── .gitignore
 ├── requirements.txt
@@ -36,7 +37,7 @@ openai-agents-starter/
 ## 安装（PowerShell）
 
 ```powershell
-cd C:\Users\danger\Documents\ChatGPT\test\openai-agents-starter
+cd C:\Users\danger\Documents\ChatGPT\test\generative-ai-agent-learning\openai-agents-starter-deepseek
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
@@ -61,12 +62,25 @@ MODEL_NAME=deepseek-flash
 python app.py
 ```
 
+当前 Routing 结构：
+
+```text
+分流助手
+├── 计算助手
+│   └── calculator
+└── 生活助手
+    ├── get_weather
+    └── save_note
+```
+
+SDK 会用 `Agent.name` 生成 Handoff 工具名，所以内部名称采用唯一的英文标识，例如 `calculation_agent`；终端再把它映射为“计算助手”。`app.py` 使用你手写的 `result.last_agent.name` 判断最终处理者。
+
 建议按顺序试：
 
 1. `你好，我叫小明`，再问 `我叫什么？`，检查多轮上下文。
-2. `计算 (10+15)/5*6`，检查计算器工具。
-3. `帮我记下：Agent = 模型决策 + 程序执行`，检查 `notes.txt`。
-4. `上海现在天气怎么样？`，检查实时天气工具。
+2. `计算 (10+15)/5*6`，应由“计算助手”调用计算器。
+3. `帮我记下：Agent = 模型决策 + 程序执行`，应由“生活助手”写入 `notes.txt`。
+4. `上海现在天气怎么样？`，应由“生活助手”查询实时天气。
 5. 输入 `/new`，再问 `我叫什么？`，检查新会话不继承旧上下文。
 
 每次真实运行模型都会产生 API 用量。
@@ -74,6 +88,8 @@ python app.py
 ## 完成标准
 
 - 能连续对话，并能用 `/new` 开始无旧历史的新会话。
+- 能解释路由 Agent 为什么没有业务工具，以及 Handoff 后谁负责最终回答。
+- 能从 `result.last_agent.name` 判断本轮最终处理者。
 - 三个工具都能被 Agent 选择并执行。
 - 工具失败不会让终端程序直接退出。
 - `.env` 不会进入 Git。
@@ -83,5 +99,6 @@ python app.py
 
 - [Agents SDK Quickstart](https://developers.openai.com/api/docs/guides/agents/quickstart?lang=python)
 - [Running agents 与会话状态](https://developers.openai.com/api/docs/guides/agents/running-agents)
+- [Orchestration and handoffs](https://developers.openai.com/api/docs/guides/agents/orchestration)
 - [DeepSeek Responses API](https://api-docs.deepseek.com/guides/responses_api/)
 - [DeepSeek 模型与价格](https://api-docs.deepseek.com/quick_start/pricing/)

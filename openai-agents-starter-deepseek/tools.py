@@ -238,10 +238,14 @@ def calculator(expression: str) -> str:
     except (TypeError, ValueError, ZeroDivisionError, OverflowError) as exc:
         return _tool_result(False, error=f"计算失败：{exc}")
 
-
-@function_tool
+#对比以前的版本，重点在于(needs_approval=True)
+@function_tool(needs_approval=True)
 def save_note(content: str) -> str:
-    """将用户明确要求保存的文本追加到本地 notes.txt。"""
+    """将用户明确要求保存的文本追加到本地 notes.txt。
+
+    写文件会产生真实副作用，因此先由 Agent 提议调用，再由用户批准。
+    在批准之前，SDK 不会进入这个函数，notes.txt 也不会被修改。
+    """
 
     try:
         message = append_note(content)
