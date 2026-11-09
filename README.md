@@ -9,7 +9,7 @@
 ```text
 LLM 基础 → Prompt → 单轮 API → 多轮聊天 → Function Calling
 → 最小 Agent → Agents SDK → Deterministic Flow → Routing
-→ Guardrails → Human-in-the-loop
+→ Guardrails → Human-in-the-loop → ReAct / Plan-and-Solve / Reflection
 ```
 
 Embedding、向量数据库和 RAG 暂时不在本阶段范围内。
@@ -29,6 +29,7 @@ Embedding、向量数据库和 RAG 暂时不在本阶段范围内。
 | Routing 与 Handoff | 已完成 | 分流 Agent 将计算和生活任务交给不同专业 Agent |
 | Guardrails | 已完成 | 实现输入、输出安全检查和 Tripwire 异常处理 |
 | Human-in-the-loop | 已完成 | `save_note` 写文件前暂停运行并由用户批准或拒绝 |
+| Hello-Agents 第四章 | 实践项目已建立 | 从零实现 ReAct、Plan-and-Solve 和 Reflection 三种运行循环 |
 
 ## 仓库结构
 
@@ -45,16 +46,21 @@ generative-ai-agent-learning/
 ├── part07-deepseek/
 ├── part11-deepseek/
 ├── genai-starter/                    # 手动实现工具调用闭环
-└── openai-agents-starter-deepseek/   # 使用 Agents SDK 驱动 DeepSeek
-    ├── app.py              # 多轮终端、审批恢复和异常边界
-    ├── agent_setup.py      # Routing Agent 与两个专业 Agent
-    ├── tools.py            # 计算、天气和保存笔记工具
-    ├── guardrails_setup.py # 输入和输出 Guardrails
-    ├── tests/              # 26 个离线测试
-    ├── Deterministic flow.md
-    ├── Routing.md
-    ├── Guardrails.md
-    └── Human-in-the-loop.md
+├── openai-agents-starter-deepseek/   # 使用 Agents SDK 驱动 DeepSeek
+│   ├── app.py              # 多轮终端、审批恢复和异常边界
+│   ├── agent_setup.py      # Routing Agent 与两个专业 Agent
+│   ├── tools.py            # 计算、天气和保存笔记工具
+│   ├── guardrails_setup.py # 输入和输出 Guardrails
+│   ├── tests/              # 26 个离线测试
+│   ├── Deterministic flow.md
+│   ├── Routing.md
+│   ├── Guardrails.md
+│   └── Human-in-the-loop.md
+└── hello-agents-ch04/                # 不使用Agent框架，手写三种经典运行循环
+    ├── react.py
+    ├── plan_and_solve.py
+    ├── reflection.py
+    └── tests/
 ```
 
 ## 运行环境
