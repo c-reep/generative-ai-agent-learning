@@ -93,24 +93,30 @@ class Executor:
         self.verbose = verbose
 
     def execute(self, question: str, plan: list[str]) -> PlanAndSolveResult:
+        #创建结果列表：保存已经完成的步骤及结果
         results: list[StepResult] = []
 
         for index, step in enumerate(plan, start=1):
+            #把以前的结果交给当前步骤
             history = _format_history(results)
+            #重新组装prompt
             prompt = EXECUTOR_PROMPT.format(
                 question=question,
                 plan=json.dumps(plan, ensure_ascii=False),
                 history=history,
                 current_step=step,
             )
+            #获取模型输出
             output = self.llm.complete([{"role": "user", "content": prompt}])
+            #绑定“步骤＋结果”
             result = StepResult(step, output)
+            #加入results
             results.append(result)
             if self.verbose:
                 print(f"\n--- 执行步骤 {index}/{len(plan)} ---")
                 print(f"步骤：{step}")
                 print(f"结果：{output}")
-
+        #整合所有“步骤+结果”
         history = _format_history(results)
         final_answer = self.llm.complete(
             [

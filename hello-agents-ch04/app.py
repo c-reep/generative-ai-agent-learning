@@ -26,6 +26,7 @@ def build_parser() -> argparse.ArgumentParser:
         choices=("react", "plan", "reflection"),
         help="选择要运行的 Agent 范式",
     )
+
     parser.add_argument(
         "task",
         nargs="?",

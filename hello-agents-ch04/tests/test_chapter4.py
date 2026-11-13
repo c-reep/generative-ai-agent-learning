@@ -58,16 +58,20 @@ class ToolTests(unittest.TestCase):
 
 class ReActTests(unittest.TestCase):
     def test_parsers(self) -> None:
+        #先将输入拆分成thought & action
         thought, action = parse_react_output(
             "Thought: 需要精确计算\nAction: Calculator[(10+15)/5*6]"
         )
+        #再将action拆分成tool_name&tool_input
         self.assertEqual(thought, "需要精确计算")
         self.assertEqual(parse_action(action), ("Calculator", "(10+15)/5*6"))
 
     def test_react_completes_tool_loop(self) -> None:
         llm = FakeLLM(
             [
+                #测试工具调用
                 "Thought: 使用计算工具\nAction: Calculator[(10+15)/5*6]",
+                #测试finished
                 "Thought: 已获得可靠结果\nAction: Finish[计算结果是 30。]",
             ]
         )

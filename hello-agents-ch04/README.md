@@ -5,11 +5,16 @@ SDK 内部通常会隐藏的运行循环。
 
 原章地址：[Chapter 4: Building Classic Agent Paradigms](https://github.com/datawhalechina/hello-agents/blob/main/docs/chapter4/Chapter4-Building-Classic-Agent-Paradigms.md)
 
+本章完成后的个人总结见：[Chapter4.md](./Chapter4.md)。
+
 ## 三种范式
 
 ```text
 ReAct
 模型决定下一步 → Python执行工具 → Observation回到模型 → 继续或结束
+1.ReAct 的巧妙之处在于认识到思考与行动是相互补充的。思考指导行动，而行动则反过来促进正确的思考。
+2.该代理会不断重复这一思维→行动→观察的循环过程，将新的观察结果添加到历史记录中，从而形成一个不断扩展的上下文。当它确定已经找到了最终答案时，就会输出结果。这个过程形成了一个强大的协同效应：推理使得行动更有目标性，而行动则为推理提供了事实依据。
+3.能够利用外部工具来回答那些大型语言模型仅凭自身知识库无法直接解答的问题。
 
 Plan-and-Solve
 模型生成完整计划 → Python按顺序逐步执行 → 汇总最终答案
@@ -36,6 +41,7 @@ hello-agents-ch04/
 ├── react.py               # Thought/Action/Observation循环
 ├── plan_and_solve.py      # Planner、Executor与结果汇总
 ├── reflection.py          # Draft/Critique/Refine循环
+├── Chapter4.md            # 第四章学习总结与三种范式对比
 ├── tests/
 │   └── test_chapter4.py   # 不调用API的离线测试
 ├── .env.example

@@ -10,6 +10,7 @@
 LLM 基础 → Prompt → 单轮 API → 多轮聊天 → Function Calling
 → 最小 Agent → Agents SDK → Deterministic Flow → Routing
 → Guardrails → Human-in-the-loop → ReAct / Plan-and-Solve / Reflection
+→ Manager Pattern / Agent as Tool
 ```
 
 Embedding、向量数据库和 RAG 暂时不在本阶段范围内。
@@ -29,7 +30,8 @@ Embedding、向量数据库和 RAG 暂时不在本阶段范围内。
 | Routing 与 Handoff | 已完成 | 分流 Agent 将计算和生活任务交给不同专业 Agent |
 | Guardrails | 已完成 | 实现输入、输出安全检查和 Tripwire 异常处理 |
 | Human-in-the-loop | 已完成 | `save_note` 写文件前暂停运行并由用户批准或拒绝 |
-| Hello-Agents 第四章 | 实践项目已建立 | 从零实现 ReAct、Plan-and-Solve 和 Reflection 三种运行循环 |
+| Hello-Agents 第四章 | 已完成 | 从零实现 ReAct、Plan-and-Solve、Reflection，完成离线测试和范式对比总结 |
+| Manager Pattern / Agent as Tool | 下一阶段 | 改造现有 Agents SDK 项目，让主 Agent 调用专业 Agent 后收回结果 |
 
 ## 仓库结构
 
@@ -60,6 +62,7 @@ generative-ai-agent-learning/
     ├── react.py
     ├── plan_and_solve.py
     ├── reflection.py
+    ├── Chapter4.md        # 第四章学习总结
     └── tests/
 ```
 
@@ -125,6 +128,9 @@ MODEL_NAME=deepseek-flash
 8. Guardrail 负责自动检查，Human-in-the-loop 负责在副作用发生前交由人批准。
 9. 审批产生的是一次暂停；应恢复原 `RunState`，而不是重新创建用户请求。
 10. 模型负责提出工具调用，Python 负责校验、授权和执行真实动作。
+11. ReAct根据Observation动态调整下一步；Plan-and-Solve先生成完整计划再顺序执行；Reflection通过审查与修改提高结果质量。
+12. 所有Agent循环都必须设置由Python控制的解析、错误处理和停止条件。
+13. Reflection可以改善输出，但不能代替外部事实校验、可信工具和自动测试。
 
 ## 声明
 
