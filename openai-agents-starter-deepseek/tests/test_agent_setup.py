@@ -3,7 +3,12 @@ from types import SimpleNamespace
 
 from agents import OpenAIResponsesModel
 from agents.handoffs import handoff
-from agent_setup import AGENT_DISPLAY_NAMES, build_agent, build_routing_agent
+from agent_setup import (
+    AGENT_DISPLAY_NAMES,
+    build_agent,
+    build_manager_agent,
+    build_routing_agent,
+)
 
 
 class AgentSetupTests(unittest.TestCase):
@@ -81,6 +86,7 @@ class AgentSetupTests(unittest.TestCase):
             AGENT_DISPLAY_NAMES,
             {
                 "routing_agent": "分流助手",
+                "manager_agent": "总控助手",
                 "calculation_agent": "计算助手",
                 "life_agent": "生活助手",
             },
@@ -100,6 +106,28 @@ class AgentSetupTests(unittest.TestCase):
             ],
         )
         self.assertEqual(len(handoff_tool_names), len(set(handoff_tool_names)))
+
+    def test_manager_exposes_specialists_as_tools(self) -> None:
+        manager_agent = build_manager_agent(self._settings())
+
+        self.assertEqual(manager_agent.name, "manager_agent")
+        self.assertEqual(manager_agent.handoffs, [])
+        self.assertEqual(
+            {tool.name for tool in manager_agent.tools},
+            {"ask_calculation_specialist", "ask_life_specialist"},
+        )
+
+    def test_manager_has_boundary_guardrails(self) -> None:
+        manager_agent = build_manager_agent(self._settings())
+
+        self.assertEqual(
+            [guardrail.get_name() for guardrail in manager_agent.input_guardrails],
+            ["block_exposed_secrets"],
+        )
+        self.assertEqual(
+            [guardrail.get_name() for guardrail in manager_agent.output_guardrails],
+            ["block_secret_output"],
+        )
 
 
 if __name__ == "__main__":

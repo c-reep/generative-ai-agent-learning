@@ -10,7 +10,7 @@
 LLM 基础 → Prompt → 单轮 API → 多轮聊天 → Function Calling
 → 最小 Agent → Agents SDK → Deterministic Flow → Routing
 → Guardrails → Human-in-the-loop → ReAct / Plan-and-Solve / Reflection
-→ Manager Pattern / Agent as Tool
+→ Manager Pattern / Agent as Tool → Hello-Agents 第七章
 ```
 
 Embedding、向量数据库和 RAG 暂时不在本阶段范围内。
@@ -31,7 +31,8 @@ Embedding、向量数据库和 RAG 暂时不在本阶段范围内。
 | Guardrails | 已完成 | 实现输入、输出安全检查和 Tripwire 异常处理 |
 | Human-in-the-loop | 已完成 | `save_note` 写文件前暂停运行并由用户批准或拒绝 |
 | Hello-Agents 第四章 | 已完成 | 从零实现 ReAct、Plan-and-Solve、Reflection，完成离线测试和范式对比总结 |
-| Manager Pattern / Agent as Tool | 下一阶段 | 改造现有 Agents SDK 项目，让主 Agent 调用专业 Agent 后收回结果 |
+| Manager Pattern / Agent as Tool | 代码与离线测试完成，待真实模型测试 | 主 Agent 通过 `as_tool()` 调用专业 Agent并保留最终回答权，Agents SDK 项目 28 个离线测试通过 |
+| Hello-Agents 第七章 | 理论与代码完成，真实模型验证中 | 从零构建 Message、Agent、LLM、ToolRegistry 和 FunctionCallAgent，15 个离线测试通过 |
 
 ## 仓库结构
 
@@ -50,20 +51,28 @@ generative-ai-agent-learning/
 ├── genai-starter/                    # 手动实现工具调用闭环
 ├── openai-agents-starter-deepseek/   # 使用 Agents SDK 驱动 DeepSeek
 │   ├── app.py              # 多轮终端、审批恢复和异常边界
-│   ├── agent_setup.py      # Routing Agent 与两个专业 Agent
+│   ├── manager_pattern.py  # Agents as tools / Manager Pattern 入口
+│   ├── agent_setup.py      # Routing、Manager 与两个专业 Agent
 │   ├── tools.py            # 计算、天气和保存笔记工具
 │   ├── guardrails_setup.py # 输入和输出 Guardrails
-│   ├── tests/              # 26 个离线测试
+│   ├── tests/              # 28 个离线测试
 │   ├── Deterministic flow.md
 │   ├── Routing.md
+│   ├── Manager Pattern.md
 │   ├── Guardrails.md
 │   └── Human-in-the-loop.md
-└── hello-agents-ch04/                # 不使用Agent框架，手写三种经典运行循环
-    ├── react.py
-    ├── plan_and_solve.py
-    ├── reflection.py
-    ├── Chapter4.md        # 第四章学习总结
-    └── tests/
+├── hello-agents-ch04/                # 不使用Agent框架，手写三种经典运行循环
+│   ├── react.py
+│   ├── plan_and_solve.py
+│   ├── reflection.py
+│   ├── Chapter4.md        # 第四章学习总结
+│   └── tests/
+└── hello-agents-ch07/                # 从零构建可复用的最小 Agent 框架
+    ├── core/              # Message、LLM、Agent 与配置
+    ├── agents/            # SimpleAgent 与 FunctionCallAgent
+    ├── tools/             # Tool 抽象与注册表
+    ├── tests/             # 骨架测试与 TODO 验收测试
+    └── architecture-map.html # 类关系与工具调用链交互图
 ```
 
 ## 运行环境
@@ -131,6 +140,7 @@ MODEL_NAME=deepseek-flash
 11. ReAct根据Observation动态调整下一步；Plan-and-Solve先生成完整计划再顺序执行；Reflection通过审查与修改提高结果质量。
 12. 所有Agent循环都必须设置由Python控制的解析、错误处理和停止条件。
 13. Reflection可以改善输出，但不能代替外部事实校验、可信工具和自动测试。
+14. 最终答案正确不等于真实调用了工具；需要同时验证模型返回 `tool_call`、Python 执行工具，以及 `role=tool` 结果被送回模型。
 
 ## 声明
 

@@ -11,6 +11,7 @@ from tools import calculator, get_weather, save_note
 # 英文字母、数字和下划线。终端显示时再映射为易读的中文名称。
 AGENT_DISPLAY_NAMES = {
     "routing_agent": "分流助手",
+    "manager_agent": "总控助手",
     "calculation_agent": "计算助手",
     "life_agent": "生活助手",
 }
@@ -63,6 +64,20 @@ ROUTING_AGENT_INSTRUCTIONS = """
 """.strip()
 
 
+MANAGER_AGENT_INSTRUCTIONS = """
+你是整个应用的总控助手，始终负责面向用户的最终回答。
+
+规则：
+1. 普通知识问题可以直接回答。
+2. 数学计算请求必须调用 ask_calculation_specialist，不要自己心算。
+3. 当前天气查询、保存笔记请求必须调用 ask_life_specialist。
+4. 一个请求包含多个领域时，可以调用多个专业助手，再综合它们的结果。
+5. 专业助手只是提供结果，不会接管对话；最终答案必须由你统一整理。
+6. 专业助手或底层工具返回失败时，诚实说明原因，不要编造成功结果。
+7. 回答保持简洁，并明确区分执行结果与模型解释。
+""".strip()
+
+
 def build_model(settings) -> OpenAIResponsesModel:
     """创建所有 Agent 共用的 DeepSeek 模型适配器。"""
 
@@ -91,11 +106,8 @@ def build_agent(settings) -> Agent:
     )
 
 
-def build_routing_agent(settings) -> Agent:
-    """创建路由 Agent，并将不同工具隔离到两个专业 Agent。"""
-
-    # 三个 Agent 共用同一个底层模型，但拥有不同指令、工具和职责。
-    model = build_model(settings)
+def _build_specialist_agents(model: OpenAIResponsesModel) -> tuple[Agent, Agent]:
+    """创建可被 Handoff 或 Manager 复用的两个专业 Agent。"""
 
     calculation_agent = Agent(
         name="calculation_agent",
@@ -117,6 +129,16 @@ def build_routing_agent(settings) -> Agent:
         output_guardrails=[block_secret_output],
     )
 
+    return calculation_agent, life_agent
+
+
+def build_routing_agent(settings) -> Agent:
+    """创建 Handoff 版本：专业 Agent 接管本轮回答。"""
+
+    # 三个 Agent 共用同一个底层模型，但拥有不同指令、工具和职责。
+    model = build_model(settings)
+    calculation_agent, life_agent = _build_specialist_agents(model)
+
     return Agent(
         name="routing_agent",
         instructions=ROUTING_AGENT_INSTRUCTIONS,
@@ -127,4 +149,32 @@ def build_routing_agent(settings) -> Agent:
         output_guardrails=[block_secret_output],
         # Handoff 表示：路由 Agent 判断意图后，由专业 Agent 接管本轮回答。
         handoffs=[calculation_agent, life_agent],
+    )
+
+
+def build_manager_agent(settings) -> Agent:
+    """创建 Manager 版本：专业 Agent 作为工具，Manager 保留回答权。"""
+
+    model = build_model(settings)
+    calculation_agent, life_agent = _build_specialist_agents(model)
+
+    return Agent(
+        name="manager_agent",
+        instructions=MANAGER_AGENT_INSTRUCTIONS,
+        model=model,
+        # 输入检查只需绑定整条链的入口 Agent。
+        input_guardrails=[block_exposed_secrets],
+        # Manager 始终生成面向用户的最终回答，因此输出检查绑定在这里。
+        output_guardrails=[block_secret_output],
+        # as_tool 不转移控制权：专业 Agent 返回结果后，Manager 继续运行。
+        tools=[
+            calculation_agent.as_tool(
+                tool_name="ask_calculation_specialist",
+                tool_description="处理需要可靠数学计算的请求。",
+            ),
+            life_agent.as_tool(
+                tool_name="ask_life_specialist",
+                tool_description="处理当前天气查询或保存笔记请求。",
+            ),
+        ],
     )

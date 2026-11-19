@@ -1,0 +1,646 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Hello-Agents Chapter 7 项目类关系与调用流程交互图">
+  <title>Hello-Agents Ch07 · 代码关系图</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f6f7f3;
+      --panel: rgba(255, 255, 255, 0.82);
+      --ink: #17201d;
+      --muted: #63706b;
+      --line: #cfd8d3;
+      --green: #136f63;
+      --green-soft: #dff2ec;
+      --blue: #3568a8;
+      --blue-soft: #e3edf9;
+      --amber: #9a6112;
+      --amber-soft: #fff0cf;
+      --shadow: 0 18px 50px rgba(23, 32, 29, 0.09);
+      --radius: 22px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: Inter, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+      background:
+        radial-gradient(circle at 10% 0%, rgba(202, 231, 220, 0.7), transparent 30rem),
+        radial-gradient(circle at 90% 100%, rgba(214, 228, 246, 0.65), transparent 34rem),
+        var(--paper);
+    }
+
+    button { font: inherit; }
+
+    .shell {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 42px 0 64px;
+    }
+
+    header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--green);
+      font-size: 0.76rem;
+      font-weight: 800;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      max-width: 760px;
+      margin: 0;
+      font-family: Georgia, "Noto Serif SC", serif;
+      font-size: clamp(2rem, 5vw, 4.2rem);
+      font-weight: 500;
+      letter-spacing: -0.045em;
+      line-height: 0.98;
+    }
+
+    .lead {
+      max-width: 480px;
+      margin: 14px 0 0;
+      color: var(--muted);
+      line-height: 1.75;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: end;
+      gap: 8px 14px;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .legend span { display: inline-flex; align-items: center; gap: 7px; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--green); }
+    .dot.todo { background: var(--amber); }
+
+    .board {
+      overflow: hidden;
+      border: 1px solid rgba(166, 181, 174, 0.65);
+      border-radius: 28px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .tabs { display: inline-flex; gap: 6px; padding: 5px; border-radius: 13px; background: #edf0ec; }
+    .tab, .play {
+      border: 0;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: 160ms ease;
+    }
+    .tab { padding: 9px 14px; color: var(--muted); background: transparent; font-weight: 700; }
+    .tab[aria-selected="true"] { color: white; background: var(--ink); }
+    .play { padding: 10px 15px; color: var(--green); background: var(--green-soft); font-weight: 800; }
+    .play:hover, .play:focus-visible { transform: translateY(-1px); background: #cfeae2; }
+
+    .content {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 0;
+      min-height: 610px;
+      transition: grid-template-columns 260ms ease;
+    }
+    .content.detail-open { grid-template-columns: minmax(0, 1fr) minmax(300px, 360px); }
+
+    .stage {
+      position: relative;
+      min-width: 0;
+      padding: 38px;
+    }
+
+    .view[hidden] { display: none; }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(120px, 1fr));
+      align-items: center;
+      gap: 30px;
+      min-height: 340px;
+    }
+
+    .node-wrap { position: relative; min-width: 0; }
+    .node-wrap:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: calc(100% + 8px);
+      width: 14px;
+      height: 1px;
+      background: #9aaba4;
+    }
+    .node-wrap:not(:last-child)::before {
+      content: "";
+      position: absolute;
+      z-index: 1;
+      top: calc(50% - 4px);
+      left: calc(100% + 20px);
+      width: 7px;
+      height: 7px;
+      border-top: 1px solid #82958d;
+      border-right: 1px solid #82958d;
+      transform: rotate(45deg);
+    }
+
+    .node {
+      position: relative;
+      width: 100%;
+      min-height: 142px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      color: var(--ink);
+      text-align: left;
+      background: rgba(255,255,255,0.82);
+      cursor: pointer;
+      transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+    }
+    .node:hover, .node:focus-visible, .node.active {
+      z-index: 3;
+      outline: none;
+      border-color: var(--green);
+      transform: translateY(-4px);
+      box-shadow: 0 14px 34px rgba(19, 111, 99, 0.12);
+    }
+    .node.is-playing { border-color: var(--green); background: var(--green-soft); transform: translateY(-5px) scale(1.02); }
+
+    .node-type {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 20px;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .node h2 { margin: 0; font-size: 1.03rem; line-height: 1.28; overflow-wrap: anywhere; }
+    .node p { margin: 8px 0 0; color: var(--muted); font-size: 0.82rem; line-height: 1.45; }
+
+    .tip {
+      visibility: hidden;
+      position: absolute;
+      z-index: 10;
+      left: 50%;
+      bottom: calc(100% + 12px);
+      width: 210px;
+      padding: 11px 13px;
+      border-radius: 12px;
+      color: white;
+      background: var(--ink);
+      font-size: 0.78rem;
+      line-height: 1.5;
+      opacity: 0;
+      transform: translate(-50%, 8px);
+      transition: 150ms ease;
+      pointer-events: none;
+    }
+    .node:hover .tip, .node:focus-visible .tip { visibility: visible; opacity: 1; transform: translate(-50%, 0); }
+
+    .loop-note {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: -28px auto 0;
+      padding: 12px 16px;
+      width: fit-content;
+      max-width: 100%;
+      border: 1px dashed #9db4aa;
+      border-radius: 999px;
+      color: var(--green);
+      background: #f4fbf8;
+      font-size: 0.84rem;
+      font-weight: 700;
+    }
+    .loop-note b { font-size: 1.05rem; }
+
+    .status {
+      min-height: 48px;
+      margin-top: 30px;
+      padding: 13px 16px;
+      border-radius: 14px;
+      color: var(--muted);
+      background: #f1f3f0;
+      font-size: 0.88rem;
+      line-height: 1.55;
+    }
+    .status strong { color: var(--ink); }
+
+    .class-map {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 24px;
+      min-height: 430px;
+      align-items: start;
+    }
+    .branch {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: rgba(255,255,255,0.54);
+    }
+    .branch-title { margin: 0 0 13px; color: var(--muted); font-size: 0.75rem; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+    .class-root { margin-bottom: 28px; }
+    .children { position: relative; display: grid; gap: 10px; }
+    .children::before {
+      content: "继承 / 实现";
+      position: absolute;
+      top: -23px;
+      left: 12px;
+      color: var(--muted);
+      font-size: 0.68rem;
+    }
+    .compact.node { min-height: 0; padding: 14px 15px; }
+    .compact .node-type { margin-bottom: 8px; }
+    .compact p { display: none; }
+
+    .detail {
+      overflow: hidden;
+      width: 100%;
+      border-left: 1px solid var(--line);
+      background: rgba(250, 252, 250, 0.95);
+      opacity: 0;
+      transform: translateX(20px);
+      transition: 230ms ease;
+    }
+    .detail.open { opacity: 1; transform: translateX(0); }
+    .detail-inner { position: sticky; top: 0; padding: 28px 26px; }
+    .close {
+      float: right;
+      width: 34px;
+      height: 34px;
+      border: 0;
+      border-radius: 50%;
+      color: var(--muted);
+      background: #e9edea;
+      cursor: pointer;
+    }
+    .detail-kicker { margin: 3px 0 9px; color: var(--green); font-size: .72rem; font-weight: 850; letter-spacing: .1em; text-transform: uppercase; }
+    .detail h2 { margin: 0; font-size: 1.65rem; overflow-wrap: anywhere; }
+    .detail-summary { margin: 12px 0 22px; color: var(--muted); line-height: 1.65; }
+    .file { display: block; margin-bottom: 20px; padding: 10px 12px; border-radius: 10px; color: var(--blue); background: var(--blue-soft); font: 0.78rem/1.45 Consolas, monospace; overflow-wrap: anywhere; }
+    .detail h3 { margin: 19px 0 9px; font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; }
+    .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+    .chip { padding: 7px 9px; border-radius: 9px; color: #33423d; background: #e9eeeb; font: 0.76rem/1.2 Consolas, monospace; }
+    .chip.todo { color: var(--amber); background: var(--amber-soft); }
+    .detail ul { margin: 8px 0 0; padding-left: 20px; color: var(--muted); font-size: .87rem; line-height: 1.65; }
+
+    .footnote { margin: 18px 4px 0; color: var(--muted); font-size: .78rem; }
+
+    @media (max-width: 900px) {
+      header { align-items: start; flex-direction: column; }
+      .legend { justify-content: start; }
+      .flow { grid-template-columns: 1fr; gap: 18px; }
+      .node { min-height: 0; }
+      .node-wrap:not(:last-child)::after { top: calc(100% + 5px); left: 50%; width: 1px; height: 9px; }
+      .node-wrap:not(:last-child)::before { top: calc(100% + 10px); left: calc(50% - 3px); transform: rotate(135deg); }
+      .loop-note { margin-top: 22px; border-radius: 16px; }
+      .class-map { grid-template-columns: 1fr; }
+      .content.detail-open { grid-template-columns: 1fr; }
+      .detail { border-top: 1px solid var(--line); border-left: 0; }
+      .stage { padding: 26px 20px; }
+    }
+
+    @media (max-width: 560px) {
+      .shell { width: min(100% - 20px, 1180px); padding-top: 24px; }
+      .toolbar { align-items: stretch; flex-direction: column; }
+      .tabs { display: grid; grid-template-columns: 1fr 1fr; }
+      .play { width: 100%; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div>
+        <p class="eyebrow">Hello-Agents · Chapter 07</p>
+        <h1>先看主干，再按需展开。</h1>
+        <p class="lead">这是当前真实代码的交互关系图。悬停查看职责，点击节点查看方法；橙色标记表示该方法仍是练习 TODO。</p>
+      </div>
+      <div class="legend" aria-label="图例">
+        <span><i class="dot"></i> 已实现</span>
+        <span><i class="dot todo"></i> 待补全</span>
+      </div>
+    </header>
+
+    <section class="board" aria-label="项目代码关系图">
+      <div class="toolbar">
+        <div class="tabs" role="tablist" aria-label="视图切换">
+          <button class="tab" type="button" role="tab" aria-selected="true" data-view="flow-view">调用流程</button>
+          <button class="tab" type="button" role="tab" aria-selected="false" data-view="class-view">类关系</button>
+        </div>
+        <button class="play" type="button" id="play-flow">▶ 演示一次工具调用</button>
+      </div>
+
+      <div class="content" id="content">
+        <div class="stage">
+          <section class="view" id="flow-view" role="tabpanel">
+            <div class="flow">
+              <div class="node-wrap">
+                <button class="node" type="button" data-key="app">
+                  <span class="node-type"><i class="dot"></i> 入口</span>
+                  <h2>app.py</h2>
+                  <p>创建并启动 Agent</p>
+                  <span class="tip">决定使用普通对话还是 Function Calling 模式。</span>
+                </button>
+              </div>
+              <div class="node-wrap">
+                <button class="node" type="button" data-key="function-agent">
+                  <span class="node-type"><i class="dot todo"></i> 编排</span>
+                  <h2>FunctionCallAgent</h2>
+                  <p>控制模型—工具循环</p>
+                  <span class="tip">模型只提议；它负责解析调用、回传工具结果并等待最终回答。</span>
+                </button>
+              </div>
+              <div class="node-wrap">
+                <button class="node" type="button" data-key="llm">
+                  <span class="node-type"><i class="dot"></i> 模型通信</span>
+                  <h2>LLMClient</h2>
+                  <p>请求模型并统一返回值</p>
+                  <span class="tip">把 SDK 返回值整理成 LLMResponse、ToolCall 和 assistant_message。</span>
+                </button>
+              </div>
+              <div class="node-wrap">
+                <button class="node" type="button" data-key="registry">
+                  <span class="node-type"><i class="dot todo"></i> 授权边界</span>
+                  <h2>ToolRegistry</h2>
+                  <p>公开 Schema，执行白名单</p>
+                  <span class="tip">模型能看到哪些工具、真正能执行哪些工具，都由注册表控制。</span>
+                </button>
+              </div>
+              <div class="node-wrap">
+                <button class="node" type="button" data-key="tools">
+                  <span class="node-type"><i class="dot"></i> Python 执行</span>
+                  <h2>Tool</h2>
+                  <p>完成确定性任务</p>
+                  <span class="tip">CalculatorTool 与 TextStatsTool 真正运行代码并产生结果。</span>
+                </button>
+              </div>
+            </div>
+            <div class="loop-note"><b>↩</b> 工具结果回到 Agent，再交给 LLM 生成最终回答</div>
+            <div class="status" id="flow-status" aria-live="polite"><strong>阅读方式：</strong>先记住五个词——入口、编排、模型通信、授权、执行。</div>
+          </section>
+
+          <section class="view" id="class-view" role="tabpanel" hidden>
+            <div class="class-map">
+              <article class="branch">
+                <p class="branch-title">Agent 家族</p>
+                <button class="node compact class-root" type="button" data-key="agent">
+                  <span class="node-type"><i class="dot todo"></i> 抽象基类</span>
+                  <h2>Agent</h2><span class="tip">保存共享依赖与历史，要求子类实现 run()。</span>
+                </button>
+                <div class="children">
+                  <button class="node compact" type="button" data-key="simple-agent"><span class="node-type"><i class="dot todo"></i> 子类</span><h2>SimpleAgent</h2><span class="tip">一次模型调用完成普通多轮对话。</span></button>
+                  <button class="node compact" type="button" data-key="function-agent"><span class="node-type"><i class="dot todo"></i> 子类</span><h2>FunctionCallAgent</h2><span class="tip">循环处理结构化工具调用。</span></button>
+                </div>
+              </article>
+
+              <article class="branch">
+                <p class="branch-title">模型通信家族</p>
+                <button class="node compact class-root" type="button" data-key="llm-protocol">
+                  <span class="node-type"><i class="dot"></i> Protocol</span>
+                  <h2>LLMClient</h2><span class="tip">规定 Agent 需要的最小模型接口。</span>
+                </button>
+                <div class="children">
+                  <button class="node compact" type="button" data-key="llm"><span class="node-type"><i class="dot"></i> 实现</span><h2>OpenAICompatibleLLM</h2><span class="tip">连接 DeepSeek 等 OpenAI 兼容服务。</span></button>
+                  <button class="node compact" type="button" data-key="response"><span class="node-type"><i class="dot"></i> 返回对象</span><h2>LLMResponse / ToolCall</h2><span class="tip">统一保存回答、工具调用和 assistant 消息。</span></button>
+                </div>
+              </article>
+
+              <article class="branch">
+                <p class="branch-title">工具家族</p>
+                <button class="node compact class-root" type="button" data-key="tool-base">
+                  <span class="node-type"><i class="dot todo"></i> 抽象基类</span>
+                  <h2>Tool</h2><span class="tip">定义 run()，并通过 to_schema() 描述自己。</span>
+                </button>
+                <div class="children">
+                  <button class="node compact" type="button" data-key="tools"><span class="node-type"><i class="dot todo"></i> 子类与组装</span><h2>Calculator / TextStats</h2><span class="tip">工具执行已实现，默认注册表仍待组装。</span></button>
+                  <button class="node compact" type="button" data-key="registry"><span class="node-type"><i class="dot todo"></i> 持有多个 Tool</span><h2>ToolRegistry</h2><span class="tip">保存、公开和执行工具白名单。</span></button>
+                </div>
+              </article>
+            </div>
+            <div class="status"><strong>再补两块共享数据：</strong>Agent 持有 <code>AgentConfig</code> 与 <code>Message[]</code>；FunctionCallAgent 额外持有一个 <code>ToolRegistry</code>。</div>
+          </section>
+        </div>
+
+        <aside class="detail" id="detail" aria-live="polite" aria-label="节点详情">
+          <div class="detail-inner">
+            <button class="close" id="close-detail" type="button" aria-label="关闭详情">×</button>
+            <p class="detail-kicker" id="detail-type">节点详情</p>
+            <h2 id="detail-title">选择一个节点</h2>
+            <p class="detail-summary" id="detail-summary">点击左侧任意节点，查看它在项目中的职责。</p>
+            <code class="file" id="detail-file">—</code>
+            <h3>关键方法 / 字段</h3>
+            <div class="chips" id="detail-methods"></div>
+            <h3>它和谁发生关系</h3>
+            <ul id="detail-relations"></ul>
+          </div>
+        </aside>
+      </div>
+    </section>
+    <p class="footnote">图中内容依据当前本地代码生成；TODO 状态也按当前文件标注。</p>
+  </main>
+
+  <script>
+    const details = {
+      app: {
+        type: "程序入口",
+        title: "app.py",
+        summary: "负责组装对象和终端循环。它不实现模型通信，也不执行工具。",
+        file: "app.py",
+        methods: ["build_agent(mode)", "chat(mode)", "main()"],
+        relations: ["创建 OpenAICompatibleLLM", "按 mode 创建 SimpleAgent 或 FunctionCallAgent", "收到 /new 时调用 Agent.clear_history()"]
+      },
+      agent: {
+        type: "抽象基类",
+        title: "Agent",
+        summary: "所有 Agent 的共同底座：保存名称、模型客户端、System Prompt、配置和历史。",
+        file: "core/agent.py",
+        methods: ["run() [抽象]", "add_message() [TODO]", "get_history() [TODO]", "clear_history() [TODO]"],
+        todo: ["add_message() [TODO]", "get_history() [TODO]", "clear_history() [TODO]"],
+        relations: ["被 SimpleAgent 和 FunctionCallAgent 继承", "持有一个 LLMClient", "使用 Message[] 保存正式历史", "持有 AgentConfig"]
+      },
+      "simple-agent": {
+        type: "Agent 子类",
+        title: "SimpleAgent",
+        summary: "普通对话策略：组装消息，调用模型一次，成功后保存本轮历史。",
+        file: "agents/simple_agent.py",
+        methods: ["run(input_text) [TODO]"],
+        todo: ["run(input_text) [TODO]"],
+        relations: ["继承 Agent", "调用 llm.complete()", "通过 Message.to_dict() 发送旧历史", "不使用 ToolRegistry"]
+      },
+      "function-agent": {
+        type: "Agent 子类 · 工具编排",
+        title: "FunctionCallAgent",
+        summary: "控制模型—工具—模型循环。模型决定是否提议调用，Python 负责解析、授权和执行。",
+        file: "agents/function_call_agent.py",
+        methods: ["_parse_arguments() [TODO]", "_build_messages()", "run() [TODO]", "argument_error_result()"],
+        todo: ["_parse_arguments() [TODO]", "run() [TODO]"],
+        relations: ["继承 Agent", "调用 llm.complete_with_tools()", "持有 ToolRegistry", "把 assistant_message 和 tool 消息追加到临时 messages"]
+      },
+      "llm-protocol": {
+        type: "接口协议",
+        title: "LLMClient",
+        summary: "Agent 依赖的最小接口。只要对象实现这两个方法，真实模型和 FakeLLM 都能被 Agent 使用。",
+        file: "core/llm.py",
+        methods: ["complete()", "complete_with_tools()"],
+        relations: ["由 OpenAICompatibleLLM 实现", "由 Agent 持有", "测试中可替换为 FakeLLM"]
+      },
+      llm: {
+        type: "模型通信实现",
+        title: "OpenAICompatibleLLM",
+        summary: "唯一负责 SDK/API 通信的组件，并把服务返回值转换成框架内部格式。",
+        file: "core/llm.py",
+        methods: ["complete()", "complete_with_tools()"],
+        relations: ["符合 LLMClient 协议", "普通调用返回 str", "工具调用返回 LLMResponse", "不保存对话历史，不执行工具"]
+      },
+      response: {
+        type: "模型返回数据",
+        title: "LLMResponse / ToolCall",
+        summary: "把 SDK 的复杂对象压缩成 Agent 真正需要的数据。assistant_message 保留模型本轮的完整消息。",
+        file: "core/llm.py",
+        methods: ["content", "tool_calls", "assistant_message", "call_id", "name", "arguments_json"],
+        relations: ["由 OpenAICompatibleLLM 创建", "被 FunctionCallAgent.run() 读取", "call_id 用于对应 assistant 工具请求与 tool 结果"]
+      },
+      "tool-base": {
+        type: "抽象基类",
+        title: "Tool",
+        summary: "统一每个工具的名称、描述、参数 Schema 和执行入口。",
+        file: "tools/base.py",
+        methods: ["run(arguments) [抽象]", "to_schema() [TODO]", "name", "description", "parameters"],
+        todo: ["to_schema() [TODO]"],
+        relations: ["被 CalculatorTool 和 TextStatsTool 继承", "实例被 ToolRegistry 保存", "to_schema() 的结果发送给模型"]
+      },
+      registry: {
+        type: "工具白名单与执行边界",
+        title: "ToolRegistry",
+        summary: "集中管理工具：注册、发现、向模型公开 Schema、执行白名单并隔离异常。",
+        file: "tools/registry.py",
+        methods: ["register() [TODO]", "get() [TODO]", "schemas() [TODO]", "execute() [TODO]", "list_names()", "descriptions()"],
+        todo: ["register() [TODO]", "get() [TODO]", "schemas() [TODO]", "execute() [TODO]"],
+        relations: ["内部持有 dict[str, Tool]", "被 FunctionCallAgent 持有", "schemas() 给 LLM", "execute() 调用具体 Tool.run()"]
+      },
+      tools: {
+        type: "具体 Python 工具",
+        title: "CalculatorTool / TextStatsTool",
+        summary: "执行确定性 Python 逻辑。模型不能直接运行它们，只能生成调用意愿和参数。",
+        file: "tools/builtin.py",
+        methods: ["CalculatorTool.run()", "TextStatsTool.run()", "build_default_registry() [TODO]"],
+        todo: ["build_default_registry() [TODO]"],
+        relations: ["继承 Tool", "由 build_default_registry() 创建并注册", "只接受注册表转交的参数", "将结果返回 ToolRegistry"]
+      }
+    };
+
+    const content = document.querySelector("#content");
+    const detail = document.querySelector("#detail");
+    const nodes = [...document.querySelectorAll(".node")];
+    const flowNodes = [...document.querySelectorAll("#flow-view .node")];
+    const status = document.querySelector("#flow-status");
+    let playing = false;
+
+    function openDetail(key) {
+      const item = details[key];
+      if (!item) return;
+      nodes.forEach(node => node.classList.toggle("active", node.dataset.key === key));
+      document.querySelector("#detail-type").textContent = item.type;
+      document.querySelector("#detail-title").textContent = item.title;
+      document.querySelector("#detail-summary").textContent = item.summary;
+      document.querySelector("#detail-file").textContent = item.file;
+      const methods = document.querySelector("#detail-methods");
+      methods.replaceChildren(...item.methods.map(method => {
+        const chip = document.createElement("span");
+        chip.className = `chip${item.todo?.includes(method) ? " todo" : ""}`;
+        chip.textContent = method;
+        return chip;
+      }));
+      const relations = document.querySelector("#detail-relations");
+      relations.replaceChildren(...item.relations.map(text => {
+        const li = document.createElement("li");
+        li.textContent = text;
+        return li;
+      }));
+      content.classList.add("detail-open");
+      detail.classList.add("open");
+    }
+
+    function closeDetail() {
+      content.classList.remove("detail-open");
+      detail.classList.remove("open");
+      nodes.forEach(node => node.classList.remove("active"));
+    }
+
+    nodes.forEach(node => node.addEventListener("click", () => openDetail(node.dataset.key)));
+    document.querySelector("#close-detail").addEventListener("click", closeDetail);
+
+    document.querySelectorAll(".tab").forEach(tab => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll(".tab").forEach(item => item.setAttribute("aria-selected", String(item === tab)));
+        document.querySelectorAll(".view").forEach(view => { view.hidden = view.id !== tab.dataset.view; });
+        document.querySelector("#play-flow").hidden = tab.dataset.view !== "flow-view";
+        closeDetail();
+      });
+    });
+
+    const demoSteps = [
+      [0, "app.py 创建 FunctionCallAgent，并把用户输入交给 run()。"],
+      [1, "Agent 组装 System、历史和本轮 User 消息，同时取得工具 Schema。"],
+      [2, "LLM 返回 assistant_message：其中可能包含结构化 tool_calls。"],
+      [3, "ToolRegistry 检查工具是否在白名单，并统一处理参数和异常。"],
+      [4, "具体 Tool.run() 执行 Python，结果以 tool 消息返回。"],
+      [1, "Agent 把工具结果再次交给 LLM，直到得到没有 tool_calls 的最终回答。"]
+    ];
+
+    const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+    document.querySelector("#play-flow").addEventListener("click", async event => {
+      if (playing) return;
+      playing = true;
+      event.currentTarget.textContent = "演示中…";
+      closeDetail();
+      for (const [index, text] of demoSteps) {
+        flowNodes.forEach((node, nodeIndex) => node.classList.toggle("is-playing", nodeIndex === index));
+        status.innerHTML = `<strong>步骤 ${demoSteps.indexOf(demoSteps.find(step => step[1] === text)) + 1}：</strong>${text}`;
+        await wait(1150);
+      }
+      flowNodes.forEach(node => node.classList.remove("is-playing"));
+      status.innerHTML = "<strong>结束：</strong>模型负责决策，Python 负责校验与执行；工具结果再交给模型整理。";
+      event.currentTarget.textContent = "↻ 再演示一次";
+      playing = false;
+    });
+
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape") closeDetail();
+    });
+  </script>
+</body>
+</html>
